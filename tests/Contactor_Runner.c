@@ -8,8 +8,8 @@
 #include "CircuitSim.h"
 #include <string.h>
 
-static Contactor_t air_p_uut, air_n_uut, precharge_contactor_uut, discharge_contactor_uut, UUT_5;
-static SimContactor_t air_p_sim, air_n_sim, precharge_sim, discharge_sim, sim_link_5;
+static Contactor_t air_p_uut, air_n_uut, precharge_contactor_uut, discharge_contactor_uut;
+static SimContactor_t air_p_sim, air_n_sim, precharge_sim, discharge_sim;
 
 void ResetContactorsWithSim(void) {
     air_p_uut = (Contactor_t){
@@ -186,8 +186,6 @@ bool hasAnyFault(const Contactor_t* contactor) {
 /* INIT TESTS */
 
 void test_Contactor_Valid_Pull_Config(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /*
         Verify that Contactor_Init enforces the correct pull resistor configuration based on the drive and sense logic settings.
         For ACTIVE_HIGH logic, the drive pin should have a PULL_DOWN, and for ACTIVE_LOW logic, it should have a PULL_UP.
@@ -214,8 +212,6 @@ void test_Contactor_Valid_Pull_Config(void) {
 }
 
 void test_Contactor_Invalid_Pull_Config(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /* 
         Verify that Contactor_Init fails when the pull resistor configuration is incompatible with the drive and sense logic settings.
         For example, if the drive logic is ACTIVE_HIGH but the drive pin has a PULL_UP, this should be considered an invalid configuration and Contactor_Init should return EXIT_FAILURE.
@@ -230,9 +226,6 @@ void test_Contactor_Invalid_Pull_Config(void) {
     air_p_uut.GPIO_Sense_pin.pull = GPIO_PULL_UP; // This is an electrical mismatch
 
     const bool retval = Contactor_Init(&air_p_uut);
-    const GPIO_Pull_t pull1 = Mock_HAL_GetPullConfig(air_p_uut.GPIO_Drive_pin);
-    const GPIO_Pull_t pull2 = Mock_HAL_GetPullConfig(air_p_uut.GPIO_Sense_pin);
-
 
     TEST_ASSERT_EQUAL(EXIT_FAILURE, retval);
     TEST_ASSERT_TRUE(hasHardFault(&air_p_uut));
@@ -251,16 +244,12 @@ void test_Contactor_AccumulatedRuntime_Updates(void) {
 }
 
 void test_Contactor_DriveToSense_MixedLogic(void) {
-    
-
     /*
         Verify that Contactor_Init correctly handles a mixed logic configuration where the drive and sense logic are different (e.g., drive is ACTIVE_HIGH but sense is ACTIVE_LOW).
         In this case, the pull resistor configuration must still be valid for each pin based on its respective logic. For example, if the drive is ACTIVE_HIGH, it should have a PULL_DOWN, and if the sense is ACTIVE_LOW, it should have a PULL_UP.
 
         This test modifies the pre-registered air_p_uut contactor to have a mixed logic configuration and checks that Contactor_Init accepts this configuration as long as the pull resistors are correctly set according to their respective logics.
     */
-
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
 
     air_n_uut.drive_logic = ACTIVE_HIGH;
     air_n_uut.sense_logic = ACTIVE_LOW;
@@ -291,8 +280,6 @@ void test_EEPROM_CycleCountPersistence(void) {
 }
 
 void test_Contactor_Closes_Physically(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /*
         Verify that when Contactor_SetState is called to close the contactor, the physical state of the contactor (as simulated by CircuitSim) changes to CLOSED after the expected travel time.
         This test uses the pre-registered air_p_uut contactor, commands it to close, and then checks that the physical state in the simulation reflects this change after the appropriate delay.
@@ -305,12 +292,11 @@ void test_Contactor_Closes_Physically(void) {
 
     const bool set_retval = Contactor_SetState(&air_p_uut, CLOSED);
 
+    TEST_ASSERT_EQUAL(EXIT_SUCCESS, set_retval);
     TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
 }
 
 void test_Contactor_Fault_WeldedContact(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /*
         Verify that if the contactor is commanded to OPEN but the sense pin indicates it is still 
         CLOSED (simulating a welded contact), Contactor_SetState should return EXIT_FAILURE, the fault 
@@ -362,8 +348,6 @@ void test_Contactor_Fault_WeldedContact(void) {
 }
 
 void test_Contactor_Should_Wait_For_Travel_Time(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /*
         Verify that Contactor_SetState enforces the specified travel time before the contactor state changes to CLOSED.
         This test uses the pre-registered air_n_uut contactor, sets a travel time, commands it to close, and checks that the state does not change to CLOSED until after the travel time has elapsed.
@@ -389,8 +373,6 @@ void test_Contactor_Should_Wait_For_Travel_Time(void) {
 }
 
 void test_NO_main_NC_aux(void) {
-    const ErrorRegister_t* drive_fault_reg = &air_p_uut.fault_register;
-
     /*
         Verify that the sense pin correctly reflects the state of the auxiliary contact based on the normal states and logic configurations.
         For example, if the main contact is normally open and the auxiliary contact is normally closed, when the main is commanded to close, the sense pin should reflect the state of the auxiliary contact accordingly.
@@ -403,7 +385,7 @@ void test_NO_main_NC_aux(void) {
     air_n_sim.contactor->sense_logic = ACTIVE_HIGH;
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_n_uut));
-    TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
+    TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
     
 
     /* Test closing the contactors */

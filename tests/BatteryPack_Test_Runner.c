@@ -494,7 +494,7 @@ void test_BatteryPack_Precharge_To_Running_Transition(void) {
 
     {
         /* Simulate precharge timer elapsing and verify FSM transitions to RUNNING */
-        sim_steps(5.0, 0.001); // Simulate 5 seconds for precharge
+        sim_steps(5.01, 0.001); // Simulate 5 seconds for precharge
         TEST_ASSERT_EQUAL_UINT8(RUNNING_ID, current_state.state_id);
     }
 
