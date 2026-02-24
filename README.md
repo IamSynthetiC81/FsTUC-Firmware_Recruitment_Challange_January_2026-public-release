@@ -85,14 +85,19 @@ bash setup.sh
 
 From repository root:
 
+### On Linux/macOS with Unix Makefiles generator:
 ```bash
 cmake -B build -G "Unix Makefiles"
 cmake --build build
 ```
 
-> On Windows with Visual Studio generator, CMake may choose a different generator automatically.
+### On Windows with Ninja generator:
+```powershell
+cmake -B build -G "Ninja"
+cmake --build build
+```
 
----
+> Note: You can also use Visual Studio generator on Windows if you prefer.
 
 ## Run Tests
 
