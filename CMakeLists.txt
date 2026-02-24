@@ -182,7 +182,7 @@ else()
     add_library(EmbeddedHardware STATIC
             lib/src/ADC.c
             lib/src/EEPROM.c
-            lib/src/Errno.c
+            lib/src/ErrorRegister.c
             lib/src/HAL_io.c
             lib/src/CircuitSim.c
             lib/src/Clock.c

@@ -11,7 +11,7 @@
 /* =======================================================================
  * Battery Pack Error Bit and Structure Definitions
  * ====================================================================== */
-#include "Errno.h"
+#include "ErrorRegister.h"
 
 #define FAULT_BPACK_UNDERVOLTAGE        0
 #define FAULT_BPACK_OVERVOLTAGE         1

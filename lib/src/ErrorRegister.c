@@ -1,4 +1,4 @@
-#include "Errno.h"
+#include "ErrorRegister.h"
 
 /**
  * @brief Global PROGRAM_ERRORS register instance

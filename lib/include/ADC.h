@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "Errno.h"
+#include "ErrorRegister.h"
 
 
 /* =======================================================================
  * Battery Pack Error Bit and Structure Definitions
  * ====================================================================== */
-#include "Errno.h"
+#include "ErrorRegister.h"
 
 #define FAULT_ADC_CONVERSION_ERROR_BIT 0
 #define FAULT_ADC_BUFFER_OVERFLOW_BIT 1

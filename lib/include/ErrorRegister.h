@@ -1,8 +1,12 @@
-#ifndef FSTUC_ERRNO_H
-#define FSTUC_ERRNO_H
+#ifndef FSTUC_ERROR_REGISTER_H
+#define FSTUC_ERROR_REGISTER_H
 
 #if defined(__GNUC__) || defined(__clang__)
 #include_next <errno.h>
+#endif
+
+#ifndef EINVAL
+#define EINVAL 22
 #endif
 
 #include <stdint.h>
@@ -65,5 +69,5 @@ static inline void Error_ClearRegister(ErrorRegister_t* reg){
     }
 }
 
-#endif // FSTUC_ERRNO_H
+#endif // FSTUC_ERROR_REGISTER_H
 

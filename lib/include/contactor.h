@@ -6,7 +6,7 @@
 
 #include "EEPROM.h"
 #include "HAL_io.h"
-#include "Errno.h"
+#include "ErrorRegister.h"
 
 /* =======================================================================
  * Contactor Error Bit and Structure Definitions
