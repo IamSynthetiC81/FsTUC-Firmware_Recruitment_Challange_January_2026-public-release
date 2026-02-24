@@ -1,5 +1,9 @@
-#ifndef ERRNO_H
-#define ERRNO_H
+#ifndef FSTUC_ERRNO_H
+#define FSTUC_ERRNO_H
+
+#if defined(__GNUC__) || defined(__clang__)
+#include_next <errno.h>
+#endif
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -61,5 +65,5 @@ static inline void Error_ClearRegister(ErrorRegister_t* reg){
     }
 }
 
-#endif // ERRNO_H
+#endif // FSTUC_ERRNO_H
 
