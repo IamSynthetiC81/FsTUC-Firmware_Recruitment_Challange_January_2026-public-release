@@ -337,21 +337,36 @@ func (m model) runTask(t Task) tea.Cmd {
 			}
 		}
 
-		for _, step := range t.Steps {
-			cmd := exec.Command(step[0], step[1:]...)
-			if stepDir != "" {
-				cmd.Dir = stepDir
-			}
-			output, _ := cmd.CombinedOutput()
-			out.WriteString(colorizeOutput(relativizeOutput(output, workspaceAbs)))
-			if cmd.ProcessState != nil && !cmd.ProcessState.Success() {
-				return logMsg(fmt.Sprintf("[%s] %s %s\n%s", timestamp, failStyle.Render("FAILED:"), t.Label, out.String()))
-			}
-		}
-		if t.ShowOutput {
-			return logMsg(fmt.Sprintf("[%s] %s %s\n%s", timestamp, passStyle.Render("PASSED:"), t.Label, out.String()))
-		}
-		return logMsg(fmt.Sprintf("[%s] %s %s", timestamp, passStyle.Render("PASSED:"), t.Label))
+		   const resultFmt = "[%s] %s %s\n%s"
+		   const summaryFmt = "[%s] %s %s"
+		   const passedStr = "PASSED:"
+		   const failedStr = "FAILED:"
+
+		   for _, step := range t.Steps {
+			   cmd := exec.Command(step[0], step[1:]...)
+			   if stepDir != "" {
+				   cmd.Dir = stepDir
+			   }
+			   output, _ := cmd.CombinedOutput()
+			   out.WriteString(colorizeOutput(relativizeOutput(output, workspaceAbs)))
+
+			   isRunAll := t.Label == "Run All Tests"
+			   isFail := cmd.ProcessState != nil && !cmd.ProcessState.Success()
+
+			   if isRunAll {
+				   if isFail {
+					   return logMsg(fmt.Sprintf(resultFmt, timestamp, failStyle.Render(failedStr), t.Label, out.String()))
+				   }
+				   return logMsg(fmt.Sprintf(resultFmt, timestamp, passStyle.Render(passedStr), t.Label, out.String()))
+			   }
+			   if isFail {
+				   return logMsg(fmt.Sprintf(resultFmt, timestamp, failStyle.Render(failedStr), t.Label, out.String()))
+			   }
+		   }
+		   if t.ShowOutput {
+			   return logMsg(fmt.Sprintf(resultFmt, timestamp, passStyle.Render(passedStr), t.Label, out.String()))
+		   }
+		   return logMsg(fmt.Sprintf(summaryFmt, timestamp, passStyle.Render(passedStr), t.Label))
 	}
 }
 
