@@ -105,6 +105,8 @@
 #COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
 #COMMENT "Running all test suites via CTest"
 #)
+
+
 cmake_minimum_required(VERSION 3.20)
 
 project(FsTUC_Firmware_Recruitment
@@ -193,9 +195,9 @@ else()
     )
 
     if(MSVC)
-        target_compile_options(EmbeddedHardware PRIVATE /W4)
+        target_compile_options(EmbeddedHardware PRIVATE /W4 ${COMMON_FLAGS})
     else()
-        target_compile_options(EmbeddedHardware PRIVATE -Wall -Wextra -g)
+        target_compile_options(EmbeddedHardware PRIVATE -Wall -Wextra -g ${COMMON_FLAGS})
     endif()
 endif()
 

@@ -254,6 +254,7 @@ void test_Contactor_DriveToSense_MixedLogic(void) {
     air_n_uut.drive_logic = ACTIVE_HIGH;
     air_n_uut.sense_logic = ACTIVE_LOW;
     air_n_uut.GPIO_Sense_pin.pull = GPIO_PULL_UP;
+    air_n_uut.GPIO_Drive_pin.pull = GPIO_PULL_DOWN;
 
     {
         const bool init_retval = Contactor_Init(&air_n_uut);

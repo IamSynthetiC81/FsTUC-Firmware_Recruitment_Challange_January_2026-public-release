@@ -25,7 +25,7 @@ static inline bool hasAnyFaults(void) {
 static FILE* s_log_file = NULL;
 static double s_time_s = 0.0;
 
-static SimContactor_t air_p_sim, air_n_sim, precharge_sim, discharge_sim, sim_link_5;
+static SimContactor_t air_p_sim, air_n_sim, precharge_sim, discharge_sim;
 
 static const char* _state_to_string(FSM_id_t state_id) {
     switch (state_id) {
@@ -38,34 +38,34 @@ static const char* _state_to_string(FSM_id_t state_id) {
     }
 }
 
-static const char* normalize_log_path(const char* raw_path, char* buffer, size_t buffer_size) {
-    size_t length = strlen(raw_path);
-    size_t start = 0;
-    size_t end = length;
+// static const char* normalize_log_path(const char* raw_path, char* buffer, size_t buffer_size) {
+//     size_t length = strlen(raw_path);
+//     size_t start = 0;
+//     size_t end = length;
 
-    if (length > 0 && raw_path[0] == '"') {
-        start = 1;
-    }
+//     if (length > 0 && raw_path[0] == '"') {
+//         start = 1;
+//     }
 
-    if (end > start && raw_path[end - 1] == '"') {
-        end--;
-    }
+//     if (end > start && raw_path[end - 1] == '"') {
+//         end--;
+//     }
 
-    if (end > start) {
-        size_t copy_len = end - start;
+//     if (end > start) {
+//         size_t copy_len = end - start;
 
-        if (copy_len >= buffer_size) {
-            copy_len = buffer_size - 1;
-        }
+//         if (copy_len >= buffer_size) {
+//             copy_len = buffer_size - 1;
+//         }
 
-        memcpy(buffer, &raw_path[start], copy_len);
-        buffer[copy_len] = '\0';
-    } else if (buffer_size > 0U) {
-        buffer[0] = '\0';
-    }
+//         memcpy(buffer, &raw_path[start], copy_len);
+//         buffer[copy_len] = '\0';
+//     } else if (buffer_size > 0U) {
+//         buffer[0] = '\0';
+//     }
 
-    return buffer;
-}
+//     return buffer;
+// }
 
 static void log_open(const char* filename) {
     char path[512];

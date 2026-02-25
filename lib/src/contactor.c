@@ -13,6 +13,12 @@ ErrorRegister_t ContactorErrorRegister = {
 };
 
 static ContactorState_t Contactor_GetPhysicalState(const Contactor_t* contactor) {
+	if (!contactor) {
+		Error_Set(&PROGRAM_ERRORS, ERROR_INVALID_POINTER);
+		fprintf(stderr, "Contactor_GetPhysicalState: Invalid contactor pointer\n");
+		exit(EXIT_FAILURE);
+	}
+
 	const bool pin_is_high = (HAL_GPIO_ReadPin(contactor->GPIO_Sense_pin));
 
 	ContactorState_t aux_physical_state;
@@ -35,28 +41,16 @@ static bool sense_pin_valid_state_after_command(const Contactor_t* contactor, co
 	const ContactorState_t aux_physical_state = Contactor_GetPhysicalState(contactor);
 
 	// 3. Determine what the AUX physical state SHOULD be
-	// When the main contact is in its normal state, the aux is in its normal state
-	// When the main contact is energized (not normal), the aux inverts
+	// When the main contact is in its normal state, the aux is always in its own normal state.
+	// When the main contact is energized (not normal), the aux inverts from its normal state.
+	// This relationship is independent of whether the contacts are "in phase" with each other.
 	const bool main_is_normal = (commanded_state == contactor->normalState);
-	const bool inPhase = (contactor->normalState == contactor->sense_normal_state);
 
 	ContactorState_t expected_aux_state;
 	if (main_is_normal) {
-		if (inPhase) {
-			// Main is de-energized (normal) → Aux is in its normal state
-			expected_aux_state = contactor->sense_normal_state == OPEN ? OPEN : CLOSED;
-		} else {
-			// Main is de-energized (normal) but aux is out of phase → Aux is in the opposite of its normal state
-			expected_aux_state = (contactor->sense_normal_state == OPEN) ? OPEN : CLOSED;
-		}
+		expected_aux_state = contactor->sense_normal_state;
 	} else {
-		if (inPhase) {
-			// Main is energized (not normal) → Aux inverts from its normal state
-			expected_aux_state = (contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
-		} else {
-			// Main is energized (not normal) but aux is out of phase → Aux is in its normal state
-			expected_aux_state = contactor->sense_normal_state == OPEN ? CLOSED : OPEN;
-		}
+		expected_aux_state = (contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
 	}
 
 	// 4. Comparison
@@ -107,7 +101,6 @@ static void Contactor_PullFromEEPROM(Contactor_t* contactor) {
 }
 
 static bool isHardFault(const Contactor_t* contactor) {
-	const ErrorRegister_t *error_reg = &contactor->fault_register;
 	const bool has_hard_fault = (Error_Match(&contactor->fault_register, FAULT_CONTACTOR_HARD_MASK )) != 0;
 
 	return has_hard_fault;

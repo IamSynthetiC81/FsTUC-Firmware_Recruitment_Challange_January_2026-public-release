@@ -57,7 +57,7 @@ void CircuitSim_UpdateSensePins(void);
  * @param pin GPIO pin number
  * @param level New pin level (true = HIGH, false = LOW)
  */
-void CircuitSim_UpdateFromGPIO(int port, int pin, bool level);
+void CircuitSim_UpdateFromGPIO(unsigned int port, unsigned int pin, bool level);
 
 /**
  * @brief Get the sensed state of a contactor (what the sense pin reads).

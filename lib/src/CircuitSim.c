@@ -126,6 +126,7 @@ void calc(const float dt_s) {
 }
 
 void bounce_contact(const Contactor_t *contactor) {
+    (void)contactor; // Suppress unused parameter warning
     //TODO : Implement contact bounce logic if needed, for now we assume ideal contactor behavior without bounce
 }
 
@@ -323,7 +324,7 @@ void CircuitSim_SetContactorClosedResistance(const double resistance) {
  * @param pin GPIO pin number
  * @param level New pin level (true = HIGH, false = LOW)
  */
-void CircuitSim_UpdateFromGPIO(int port, int pin, bool level) {
+void CircuitSim_UpdateFromGPIO(unsigned int port, unsigned int pin, bool level) {
     // Find matching contactor by drive pin
     for (int i = 0; i < 4; i++) {
         Contactor_t* c = CircuitContactors[i].contactor;
