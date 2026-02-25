@@ -124,6 +124,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(USE_PREBUILT_EMBEDDED "Link tests against prebuilt EmbeddedHardware static library" OFF)
 set(PREBUILT_EMBEDDED_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${CMAKE_SYSTEM_NAME}" CACHE PATH "Directory containing prebuilt EmbeddedHardware static library")
+option(USE_PREBUILT_HARDWARE_MOCH "Link tests against prebuilt HardwareMoch static library" ON)
+set(PREBUILT_HARDWARE_MOCH_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${CMAKE_SYSTEM_NAME}" CACHE PATH "Directory containing prebuilt HardwareMoch static library")
 
 # ============================================================================
 # Fetch Unity test framework
@@ -151,6 +153,7 @@ target_include_directories(unity_lib PUBLIC
 # Common include paths
 # ============================================================================
 set(LIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/include)
+set(TEST_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/tests)
 set(MOCK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/tests/mocks)
 
 # ============================================================================
@@ -202,6 +205,34 @@ else()
 endif()
 
 # ============================================================================
+# Hardware Moch library (mock hardware + test timing utilities)
+# ============================================================================
+if(USE_PREBUILT_HARDWARE_MOCH)
+        set(HARDWARE_MOCH_PREBUILT_PATH "${PREBUILT_HARDWARE_MOCH_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}HardwareMoch${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        if(NOT EXISTS "${HARDWARE_MOCH_PREBUILT_PATH}")
+                message(FATAL_ERROR "Prebuilt HardwareMoch library not found: ${HARDWARE_MOCH_PREBUILT_PATH}")
+        endif()
+
+    add_library(HardwareMoch STATIC IMPORTED GLOBAL)
+    set_target_properties(HardwareMoch PROPERTIES
+                        IMPORTED_LOCATION "${HARDWARE_MOCH_PREBUILT_PATH}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIB_INCLUDE_DIR};${TEST_INCLUDE_DIR};${MOCK_INCLUDE_DIR}"
+    )
+else()
+    add_library(HardwareMoch STATIC
+            tests/mocks/HAL_io_mock.c
+            tests/Test_Utils.c
+    )
+    target_include_directories(HardwareMoch PUBLIC
+            ${LIB_INCLUDE_DIR}
+            ${TEST_INCLUDE_DIR}
+            ${MOCK_INCLUDE_DIR}
+    )
+
+    target_compile_options(HardwareMoch PRIVATE ${COMMON_FLAGS})
+endif()
+
+# ============================================================================
 # Helper macro: define a test executable
 # ============================================================================
 macro(add_test_target TARGET_NAME)
@@ -218,9 +249,9 @@ macro(add_test_target TARGET_NAME)
     target_compile_options(${TARGET_NAME} PRIVATE ${COMMON_FLAGS})
 
         if(MSVC)
-                target_link_libraries(${TARGET_NAME} PRIVATE unity_lib EmbeddedHardware)
+                target_link_libraries(${TARGET_NAME} PRIVATE unity_lib EmbeddedHardware HardwareMoch)
         else()
-                target_link_libraries(${TARGET_NAME} PRIVATE unity_lib EmbeddedHardware m)
+                target_link_libraries(${TARGET_NAME} PRIVATE unity_lib EmbeddedHardware HardwareMoch m)
         endif()
 
     add_test(NAME ${TARGET_NAME} COMMAND ${TARGET_NAME})
@@ -231,7 +262,6 @@ endmacro()
 # ============================================================================
 add_test_target(test_contactor
         lib/src/contactor.c
-        tests/mocks/HAL_io_mock.c
         tests/Contactor_Runner.c
 )
 
@@ -239,7 +269,6 @@ add_test_target(test_contactor
 # test_eeprom
 # ============================================================================
 add_test_target(test_eeprom
-        tests/mocks/HAL_io_mock.c
         tests/EEPROM_Runner.c
 )
 
@@ -250,7 +279,6 @@ add_test_target(test_adc
         lib/src/BatteryPack.c
         lib/src/FSM.c
         lib/src/contactor.c
-        tests/mocks/HAL_io_mock.c
         tests/ADC_Test_Runner.c
 )
 
@@ -261,8 +289,6 @@ add_test_target(test_battery_pack
         lib/src/BatteryPack.c
         lib/src/FSM.c
         lib/src/contactor.c
-        tests/mocks/HAL_io_mock.c
-        tests/Test_Utils.c
         tests/BatteryPack_Test_Runner.c
 )
 
@@ -287,6 +313,15 @@ if(NOT USE_PREBUILT_EMBEDDED)
             DEPENDS EmbeddedHardware
             COMMENT "Export EmbeddedHardware static library to prebuilt folder"
     )
+endif()
+
+if(NOT USE_PREBUILT_HARDWARE_MOCH)
+        add_custom_target(export_hardware_moch_prebuilt
+                        COMMAND ${CMAKE_COMMAND} -E make_directory ${PREBUILT_HARDWARE_MOCH_DIR}
+                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:HardwareMoch> ${PREBUILT_HARDWARE_MOCH_DIR}/
+                        DEPENDS HardwareMoch
+                        COMMENT "Export HardwareMoch static library to prebuilt folder"
+        )
 endif()
 
 add_custom_target(run_test_contactor
