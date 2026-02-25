@@ -18,6 +18,8 @@ else
 fi
 
 python3 -m pip install --upgrade pip
+python3 -m pip install textual
 
 echo "Success! You can now build the project:"
 echo "cmake -B build -G \"Unix Makefiles\" && cmake --build build"
+echo "Run the interactive TUI with: python3 build_tui.py"
