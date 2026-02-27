@@ -364,11 +364,11 @@ bool CircuitSim_GetSensedLevel(Contactor_t* contactor) {
 
             // Determine electrical sense state based on normal state mapping
             ContactorState_t sense_electrical_state =
-                (physical_state == contactor->normalState)
-                    ? contactor->sense_normal_state
-                    : (contactor->sense_normal_state == OPEN ? CLOSED : OPEN);
+                (physical_state == contactor->main_normal_state)
+                    ? contactor->aux_normal_state
+                    : (contactor->aux_normal_state == OPEN ? CLOSED : OPEN);
 
-            bool sense_level = (contactor->sense_logic == ACTIVE_HIGH)
+            bool sense_level = (contactor->aux_logic == ACTIVE_HIGH)
                                    ? (sense_electrical_state == CLOSED)
                                    : (sense_electrical_state == OPEN);
 
@@ -439,7 +439,7 @@ void CircuitSim_UpdateSensePins(void) {
     for (int i = 0; i < 4; i++) {
         if (CircuitContactors[i].contactor) {
             const bool sense_level = CircuitSim_GetSensedLevel(CircuitContactors[i].contactor);
-            const GPIO_Pin_t sense_pin = CircuitContactors[i].contactor->GPIO_Sense_pin;
+            const GPIO_Pin_t sense_pin = CircuitContactors[i].contactor->GPIO_AUX_pin;
 
             // Update the GPIO sense pin to match physical state
             internal_set_pin_level(sense_pin.port, sense_pin.pinNumber, sense_level);

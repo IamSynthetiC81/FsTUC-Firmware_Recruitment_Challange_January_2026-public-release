@@ -18,10 +18,10 @@ Contactor_t DISCHARGE;
 ADC_Handle_t g_adc;
 
 GPIO_Pin_t drive_command_pin;
-GPIO_Pin_t AIR_P_sense_pin;
-GPIO_Pin_t AIR_N_sense_pin;
-GPIO_Pin_t PRECHARGE_sense_pin;
-GPIO_Pin_t DISCHARGE_sense_pin;
+GPIO_Pin_t AIR_P_AUX_pin;
+GPIO_Pin_t AIR_N_AUX_pin;
+GPIO_Pin_t PRECHARGE_AUX_pin;
+GPIO_Pin_t DISCHARGE_AUX_pin;
 
 GPIO_Pin_t AIR_P_drive_pin;
 GPIO_Pin_t AIR_N_drive_pin;
@@ -29,7 +29,7 @@ GPIO_Pin_t PRECHARGE_drive_pin;
 GPIO_Pin_t DISCHARGE_drive_pin;
 
 GPIO_Pin_t fault_indicator_pin;
-GPIO_Pin_t running_indicator_pin;
+GPIO_Pin_t ready_to_race_indicator_pin;
 GPIO_Pin_t idle_indicator_pin;
 
 FSM_State_t current_state;
@@ -222,7 +222,7 @@ bool BatteryPack_Init(void) {
         .mode = GPIO_MODE_OUTPUT,
         .pull = GPIO_PULL_DOWN
     };
-    running_indicator_pin = (GPIO_Pin_t){
+    ready_to_race_indicator_pin = (GPIO_Pin_t){
         .port = GPIO_PORT_C,
         .pinNumber = GPIO_PIN_2,
         .mode = GPIO_MODE_OUTPUT,
@@ -261,25 +261,25 @@ bool BatteryPack_Init(void) {
         .pull = GPIO_PULL_DOWN
     };
 
-    AIR_P_sense_pin = (GPIO_Pin_t){
+    AIR_P_AUX_pin = (GPIO_Pin_t){
         .port = GPIO_PORT_B,
         .pinNumber = GPIO_PIN_0,
         .mode = GPIO_MODE_INPUT,
         .pull = GPIO_PULL_DOWN
     };
-    AIR_N_sense_pin = (GPIO_Pin_t){
+    AIR_N_AUX_pin = (GPIO_Pin_t){
         .port = GPIO_PORT_B,
         .pinNumber = GPIO_PIN_1,
         .mode = GPIO_MODE_INPUT,
         .pull = GPIO_PULL_DOWN
     };
-    PRECHARGE_sense_pin = (GPIO_Pin_t){
+    PRECHARGE_AUX_pin = (GPIO_Pin_t){
         .port = GPIO_PORT_B,
         .pinNumber = GPIO_PIN_2,
         .mode = GPIO_MODE_INPUT,
         .pull = GPIO_PULL_DOWN
     };
-    DISCHARGE_sense_pin = (GPIO_Pin_t){
+    DISCHARGE_AUX_pin = (GPIO_Pin_t){
         .port = GPIO_PORT_B,
         .pinNumber = GPIO_PIN_3,
         .mode = GPIO_MODE_INPUT,
@@ -291,10 +291,10 @@ bool BatteryPack_Init(void) {
     AIR_P = (Contactor_t){
         .GPIO_Drive_pin = AIR_P_drive_pin,
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = AIR_P_sense_pin,
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = AIR_P_AUX_pin,
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .current_state = OPEN,
         .persistance_data = {
             .cycle_count = 0,
@@ -314,10 +314,10 @@ bool BatteryPack_Init(void) {
     AIR_N = (Contactor_t){
         .GPIO_Drive_pin = AIR_N_drive_pin,
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = AIR_N_sense_pin,
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = AIR_N_AUX_pin,
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .current_state = OPEN,
         .persistance_data = {
             .cycle_count = 0,
@@ -337,10 +337,10 @@ bool BatteryPack_Init(void) {
     PRECHARGE = (Contactor_t){
         .GPIO_Drive_pin = PRECHARGE_drive_pin,
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = PRECHARGE_sense_pin,
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = PRECHARGE_AUX_pin,
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .current_state = OPEN,
         .persistance_data = {
             .cycle_count = 0,
@@ -360,10 +360,10 @@ bool BatteryPack_Init(void) {
     DISCHARGE = (Contactor_t){
         .GPIO_Drive_pin = DISCHARGE_drive_pin,
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = DISCHARGE_sense_pin,
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = DISCHARGE_AUX_pin,
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .current_state = OPEN,
         .persistance_data = {
             .cycle_count = 0,
@@ -429,7 +429,7 @@ bool BatteryPack_FaultHandler(void) {
 
             // Set fault indicator LED
             HAL_GPIO_WritePin(fault_indicator_pin, true);
-            HAL_GPIO_WritePin(running_indicator_pin, false);
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, false);
             HAL_GPIO_WritePin(idle_indicator_pin, false);
 
 
@@ -437,7 +437,7 @@ bool BatteryPack_FaultHandler(void) {
         case PRECHARGE_ID:
             FSM_Transition(&current_state, &DISCHARGE_STATE);
             break;
-        case RUNNING_ID:
+        case READY_TO_RACE_ID:
             FSM_Transition(&current_state, &DISCHARGE_STATE);
             break;
         case DISCHARGE_ID:
@@ -482,9 +482,9 @@ bool BatteryPack_FSM(void) {
             /* Check precharge completion status */
             const int precharge_status = Precharge();
             if (precharge_status == TRANSITION_COMPLETE) {
-                const bool transition_ok = FSM_Transition(&current_state, &RUNNING_STATE);
+                const bool transition_ok = FSM_Transition(&current_state, &READY_TO_RACE_STATE);
                 if (transition_ok == EXIT_FAILURE) {
-                    /* Contactor fault during transition to RUNNING */
+                    /* Contactor fault during transition to READY_TO_RACE */
                     Error_Set(&BatteryPackErrorRegister, FAULT_BPACK_TRANSITION_FAULT);
                     FSM_Transition(&current_state, &FAULT_STATE);
                 }
@@ -502,9 +502,9 @@ bool BatteryPack_FSM(void) {
                 return FSM_Transition(&current_state, &DISCHARGE_STATE);
             }
         }
-        case RUNNING_ID: {
+        case READY_TO_RACE_ID: {
             if (DRIVE_COMMAND && !Error_Match(&BatteryPackErrorRegister, FAULT_BPACK_HARD_MASK)) {
-                return FSM_Transition(&current_state, &RUNNING_STATE);
+                return FSM_Transition(&current_state, &READY_TO_RACE_STATE);
             } else {
                 /* Shutdown requested - transition to discharge state */
                 _Discharge_Reset();

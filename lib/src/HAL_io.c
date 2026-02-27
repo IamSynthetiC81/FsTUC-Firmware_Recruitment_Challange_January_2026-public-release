@@ -153,18 +153,18 @@ void HAL_internalLinkHandler(SimulatedPin_t* spin, const bool drive_value) {
          * - If main(CLOSED) != normalState → aux inverts from its normal state
          * This lets Contactor_GetState detect the drive/sense mismatch when the
          * contactor is commanded OPEN but physically stuck CLOSED. */
-        GPIO_Port_t sense_port = spin->contactor->contactor->GPIO_Sense_pin.port;
-        GPIO_PinNumber_t sense_pin = spin->contactor->contactor->GPIO_Sense_pin.pinNumber;
+        GPIO_Port_t sense_port = spin->contactor->contactor->GPIO_AUX_pin.port;
+        GPIO_PinNumber_t sense_pin = spin->contactor->contactor->GPIO_AUX_pin.pinNumber;
 
-        const bool main_is_normal = (CLOSED == spin->contactor->contactor->normalState);
+        const bool main_is_normal = (CLOSED == spin->contactor->contactor->main_normal_state);
         ContactorState_t aux_state;
         if (main_is_normal) {
-            aux_state = spin->contactor->contactor->sense_normal_state;
+            aux_state = spin->contactor->contactor->aux_normal_state;
         } else {
-            aux_state = (spin->contactor->contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
+            aux_state = (spin->contactor->contactor->aux_normal_state == OPEN) ? CLOSED : OPEN;
         }
 
-        bool sense_level = (spin->contactor->contactor->sense_logic == ACTIVE_HIGH)
+        bool sense_level = (spin->contactor->contactor->aux_logic == ACTIVE_HIGH)
             ? (aux_state == CLOSED)
             : (aux_state == OPEN);
 
@@ -211,30 +211,30 @@ void HAL_internalTransitionHandler() {
                     : (drive_level ? OPEN : CLOSED);
 
                 // Determine aux state: if main is normal, aux is in its normal state; else inverted
-                bool main_is_normal = (main_state == spin->contactor->contactor->normalState);
+                bool main_is_normal = (main_state == spin->contactor->contactor->main_normal_state);
                 ContactorState_t aux_state;
                 if (main_is_normal) {
-                    aux_state = spin->contactor->contactor->sense_normal_state;
+                    aux_state = spin->contactor->contactor->aux_normal_state;
                 } else {
-                    aux_state = (spin->contactor->contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
+                    aux_state = (spin->contactor->contactor->aux_normal_state == OPEN) ? CLOSED : OPEN;
                 }
 
                 // Convert aux state to electrical level
                 bool sense_level;
                 if (is_welded) {
                     // if welded, if main is in normal state, aux is in normal state; if main is not normal, aux is in inverted state
-                    const bool inPhase = (spin->contactor->contactor->normalState == spin->contactor->contactor->sense_normal_state);
+                    const bool inPhase = (spin->contactor->contactor->main_normal_state == spin->contactor->contactor->aux_normal_state);
                     if (inPhase) {
-                        sense_level = spin->contactor->contactor->sense_logic == ACTIVE_HIGH
-                            ? (spin->contactor->contactor->normalState == CLOSED)
-                            : (spin->contactor->contactor->normalState == OPEN);
+                        sense_level = spin->contactor->contactor->aux_logic == ACTIVE_HIGH
+                            ? (spin->contactor->contactor->main_normal_state == CLOSED)
+                            : (spin->contactor->contactor->main_normal_state == OPEN);
                     } else {
-                        sense_level = spin->contactor->contactor->sense_logic == ACTIVE_HIGH
-                            ? (spin->contactor->contactor->normalState == OPEN)
-                            : (spin->contactor->contactor->normalState == CLOSED);
+                        sense_level = spin->contactor->contactor->aux_logic == ACTIVE_HIGH
+                            ? (spin->contactor->contactor->main_normal_state == OPEN)
+                            : (spin->contactor->contactor->main_normal_state == CLOSED);
                     }
                 } else {
-                    sense_level = spin->contactor->contactor->sense_logic == ACTIVE_HIGH
+                    sense_level = spin->contactor->contactor->aux_logic == ACTIVE_HIGH
                     ? (aux_state == CLOSED)
                     : (aux_state == OPEN);
                 }
@@ -242,8 +242,8 @@ void HAL_internalTransitionHandler() {
                 // Mark contactor as done moving
                 spin->contactor->is_moving = false;
 
-                const GPIO_Port_t sense_port = spin->contactor->contactor->GPIO_Sense_pin.port;
-                const GPIO_PinNumber_t sense_pin_num = spin->contactor->contactor->GPIO_Sense_pin.pinNumber;
+                const GPIO_Port_t sense_port = spin->contactor->contactor->GPIO_AUX_pin.port;
+                const GPIO_PinNumber_t sense_pin_num = spin->contactor->contactor->GPIO_AUX_pin.pinNumber;
 
                 internal_set_pin_level(sense_port, sense_pin_num, sense_level);
             }
@@ -256,7 +256,8 @@ bool HAL_GPIO_Init(GPIO_Pin_t pin) {
     simulated_pins[pin.port][pin.pinNumber]._is_initialized = true;
     simulated_pins[pin.port][pin.pinNumber]._mode = pin.mode;
     simulated_pins[pin.port][pin.pinNumber]._pull = pin.pull;
-    // simulated_pins[pin.port][pin.pinNumber].contactor = NULL;
+    simulated_pins[pin.port][pin.pinNumber]._level = false;
+    simulated_pins[pin.port][pin.pinNumber]._forced_level = false;
 
     return _ALL_VALID(pin);
 }
@@ -358,24 +359,24 @@ void internal_link_pins(GPIO_Pin_t drive_pin, SimContactor_t* contactor) {
         : (current_drive_level ? OPEN : CLOSED);
 
     // Determine aux contact state
-    bool main_is_normal = (current_main_state == contactor->contactor->normalState);
+    bool main_is_normal = (current_main_state == contactor->contactor->main_normal_state);
 
     ContactorState_t aux_state;
     if (main_is_normal) {
         // Main is de-energized (in normal state) → aux is in its normal state
-        aux_state = contactor->contactor->sense_normal_state;
+        aux_state = contactor->contactor->aux_normal_state;
     } else {
         // Main is energized (not normal) → aux inverts from its normal state
-        aux_state = (contactor->contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
+        aux_state = (contactor->contactor->aux_normal_state == OPEN) ? CLOSED : OPEN;
     }
 
     // Convert to electrical level
-    bool sense_electrical = contactor->contactor->sense_logic == ACTIVE_HIGH
+    bool sense_electrical = contactor->contactor->aux_logic == ACTIVE_HIGH
         ? (aux_state == CLOSED)
         : (aux_state == OPEN);
 
     // Set sense pin initial state
-    GPIO_Port_t sense_port = contactor->contactor->GPIO_Sense_pin.port;
-    GPIO_PinNumber_t sense_pin = contactor->contactor->GPIO_Sense_pin.pinNumber;
+    GPIO_Port_t sense_port = contactor->contactor->GPIO_AUX_pin.port;
+    GPIO_PinNumber_t sense_pin = contactor->contactor->GPIO_AUX_pin.pinNumber;
     internal_set_pin_level(sense_port, sense_pin, sense_electrical);
 }

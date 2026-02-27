@@ -53,10 +53,10 @@ extern ADC_Handle_t g_adc;
 
 /* ================================~ Inputs ~================================ */
 extern GPIO_Pin_t drive_command_pin;
-extern GPIO_Pin_t AIR_P_sense_pin;
-extern GPIO_Pin_t AIR_N_sense_pin;
-extern GPIO_Pin_t PRECHARGE_sense_pin;
-extern GPIO_Pin_t DISCHARGE_sense_pin;
+extern GPIO_Pin_t AIR_P_AUX_pin;
+extern GPIO_Pin_t AIR_N_AUX_pin;
+extern GPIO_Pin_t PRECHARGE_AUX_pin;
+extern GPIO_Pin_t DISCHARGE_AUX_pin;
 
 /* ================================~ Outputs ~=============================== */
 extern GPIO_Pin_t AIR_P_drive_pin;
@@ -66,7 +66,7 @@ extern GPIO_Pin_t DISCHARGE_drive_pin;
 
 /* ===============================~ Indicators ~============================== */
 extern GPIO_Pin_t fault_indicator_pin;
-extern GPIO_Pin_t running_indicator_pin;
+extern GPIO_Pin_t ready_to_race_indicator_pin;
 extern GPIO_Pin_t idle_indicator_pin;
 
 /* ============================================================================

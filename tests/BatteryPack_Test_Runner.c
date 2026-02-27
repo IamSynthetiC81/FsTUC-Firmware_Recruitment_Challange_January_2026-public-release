@@ -30,41 +30,13 @@ static const char* _state_to_string(FSM_id_t state_id) {
     switch (state_id) {
         case SAFE_ID: return "SAFE";
         case PRECHARGE_ID: return "PRECHARGE";
-        case RUNNING_ID: return "RUNNING";
+        case READY_TO_RACE_ID: return "RUNNING";
         case DISCHARGE_ID: return "DISCHARGE";
         case FAULT_ID: return "FAULT";
         default: return "UNKNOWN";
     }
 }
 
-// static const char* normalize_log_path(const char* raw_path, char* buffer, size_t buffer_size) {
-//     size_t length = strlen(raw_path);
-//     size_t start = 0;
-//     size_t end = length;
-
-//     if (length > 0 && raw_path[0] == '"') {
-//         start = 1;
-//     }
-
-//     if (end > start && raw_path[end - 1] == '"') {
-//         end--;
-//     }
-
-//     if (end > start) {
-//         size_t copy_len = end - start;
-
-//         if (copy_len >= buffer_size) {
-//             copy_len = buffer_size - 1;
-//         }
-
-//         memcpy(buffer, &raw_path[start], copy_len);
-//         buffer[copy_len] = '\0';
-//     } else if (buffer_size > 0U) {
-//         buffer[0] = '\0';
-//     }
-
-//     return buffer;
-// }
 
 static void log_open(const char* filename) {
     char path[512];
@@ -127,10 +99,10 @@ void ResetContactorsWithSim(void) {
     AIR_P = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 0,
@@ -148,10 +120,10 @@ void ResetContactorsWithSim(void) {
     AIR_N = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 10,
@@ -168,10 +140,10 @@ void ResetContactorsWithSim(void) {
     PRECHARGE = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 20,
@@ -188,10 +160,10 @@ void ResetContactorsWithSim(void) {
     DISCHARGE = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 30,
@@ -298,6 +270,11 @@ void tearDown(void) {
 
     // Cleanup GPIO
     Mock_HAL_GPIO_Reset();
+
+    // Cleanup EEPROM
+    EEPROM_Erase(0, EEPROM_TOTAL_SIZE_BYTES);
+
+    drive_command(false);
 }
 
 void test_BatteryPack_Init_Success(void) {
@@ -337,10 +314,10 @@ void test_BatteryPack_Initial_State(void) {
         TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, fault_indicator_pin.mode);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, fault_indicator_pin.pull);
 
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_C, running_indicator_pin.port);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_2, running_indicator_pin.pinNumber);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, running_indicator_pin.mode);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, running_indicator_pin.pull);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_C, ready_to_race_indicator_pin.port);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_2, ready_to_race_indicator_pin.pinNumber);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, ready_to_race_indicator_pin.mode);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, ready_to_race_indicator_pin.pull);
     }
 
     {
@@ -350,40 +327,40 @@ void test_BatteryPack_Initial_State(void) {
         TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, AIR_P_drive_pin.mode);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_P_drive_pin.pull);
 
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, AIR_P_sense_pin.port);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_0, AIR_P_sense_pin.pinNumber);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, AIR_P_sense_pin.mode);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_P_sense_pin.pull);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, AIR_P_AUX_pin.port);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_0, AIR_P_AUX_pin.pinNumber);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, AIR_P_AUX_pin.mode);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_P_AUX_pin.pull);
 
         TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_A, AIR_N_drive_pin.port);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_1, AIR_N_drive_pin.pinNumber);
         TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, AIR_N_drive_pin.mode);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_N_drive_pin.pull);  
 
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, AIR_N_sense_pin.port);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_1, AIR_N_sense_pin.pinNumber);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, AIR_N_sense_pin.mode);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_N_sense_pin.pull);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, AIR_N_AUX_pin.port);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_1, AIR_N_AUX_pin.pinNumber);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, AIR_N_AUX_pin.mode);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, AIR_N_AUX_pin.pull);
 
         TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_A, PRECHARGE_drive_pin.port);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_2, PRECHARGE_drive_pin.pinNumber);
         TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, PRECHARGE_drive_pin.mode);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, PRECHARGE_drive_pin.pull);
 
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, PRECHARGE_sense_pin.port);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_2, PRECHARGE_sense_pin.pinNumber);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, PRECHARGE_sense_pin.mode);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, PRECHARGE_sense_pin.pull);      
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, PRECHARGE_AUX_pin.port);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_2, PRECHARGE_AUX_pin.pinNumber);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, PRECHARGE_AUX_pin.mode);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, PRECHARGE_AUX_pin.pull);      
 
         TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_A, DISCHARGE_drive_pin.port);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_3, DISCHARGE_drive_pin.pinNumber);
         TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_OUTPUT, DISCHARGE_drive_pin.mode);
         TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, DISCHARGE_drive_pin.pull);  
 
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, DISCHARGE_sense_pin.port);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_3, DISCHARGE_sense_pin.pinNumber);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, DISCHARGE_sense_pin.mode);
-        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, DISCHARGE_sense_pin.pull);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PORT_B, DISCHARGE_AUX_pin.port);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PIN_3, DISCHARGE_AUX_pin.pinNumber);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_MODE_INPUT, DISCHARGE_AUX_pin.mode);
+        TEST_ASSERT_EQUAL_UINT8(GPIO_PULL_DOWN, DISCHARGE_AUX_pin.pull);
     }
 
     {
@@ -446,6 +423,8 @@ void test_BatteryPack_Safe_To_Precharge_Transition(void) {
      * Also verifies that the drive command input is correctly read and processed by the FSM, and that the PRECHARGE contactor's drive pin is activated according to its active logic configuration.
      */
 
+    TEST_ASSERT_EQUAL(EXIT_SUCCESS, BatteryPack_Init());
+
      {
         // Check initial state
         TEST_ASSERT_EQUAL_UINT8(SAFE_ID, current_state.state_id);
@@ -454,6 +433,11 @@ void test_BatteryPack_Safe_To_Precharge_Transition(void) {
 
      {
         /* Verify that drive command is initially LOW and FSM does not transition */
+        TEST_ASSERT_EQUAL_UINT8(OPEN, AIR_P.current_state);
+        TEST_ASSERT_EQUAL_UINT8(OPEN, AIR_N.current_state);
+        TEST_ASSERT_EQUAL_UINT8(OPEN, PRECHARGE.current_state);
+        TEST_ASSERT_EQUAL_UINT8(OPEN, DISCHARGE.current_state);
+        
         TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(drive_command_pin));
         TEST_ASSERT_EQUAL(EXIT_SUCCESS, BatteryPack_FSM());
         TEST_ASSERT_EQUAL_UINT8(SAFE_ID, current_state.state_id);
@@ -494,7 +478,7 @@ void test_BatteryPack_Precharge_To_Running_Transition(void) {
     {
         /* Simulate precharge timer elapsing and verify FSM transitions to RUNNING */
         sim_steps(5.01, 0.001); // Simulate 5 seconds for precharge
-        TEST_ASSERT_EQUAL_UINT8(RUNNING_ID, current_state.state_id);
+        TEST_ASSERT_EQUAL_UINT8(READY_TO_RACE_ID, current_state.state_id);
     }
 
     {
@@ -529,7 +513,7 @@ void test_BatteryPack_Running_To_Discharge_Transition(void) {
     
             // Simulate precharge timer elapsing and verify FSM transitions to RUNNING
             sim_steps(PRECHARGE_TIMEOUT_MS/1000.0 + 0.001, 0.001); // Simulate 5 seconds for precharge
-            TEST_ASSERT_EQUAL_UINT8(RUNNING_ID, current_state.state_id);
+            TEST_ASSERT_EQUAL_UINT8(READY_TO_RACE_ID, current_state.state_id);
         }
 
         {
@@ -577,7 +561,7 @@ void test_BatteryPack_Normal_Cycle(void) {
     sim_steps(7.0, 0.001);
 
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(
-        RUNNING_ID, current_state.state_id, 
+        READY_TO_RACE_ID, current_state.state_id, 
         "Expected to transition to RUNNING after precharge"
     );
 
@@ -617,7 +601,7 @@ void test_BatteryPack_Shutdown_Uses_Discharge_Contactor(void) {
         TEST_ASSERT_TRUE_MESSAGE(elapsed_ms < (double)(PRECHARGE_TIMEOUT_MS + 1000U),
             "FSM did not transition to RUNNING within expected time"
         );
-    } while (current_state.state_id < RUNNING_ID);
+    } while (current_state.state_id < READY_TO_RACE_ID);
 
     const uint32_t discharge_cycle_count_before = DISCHARGE.persistance_data.cycle_count;
 
@@ -646,6 +630,37 @@ void test_BatteryPack_Shutdown_Uses_Discharge_Contactor(void) {
     TEST_ASSERT_FALSE_MESSAGE(hasAnyFaults(), "Expected no faults during normal cycle");
 }
 
+void test_BatteryPack_LED_Indicators(void) {
+    /**
+     * Verify that the fault_indicator_pin and ready_to_race_indicator_pin are set correctly according to the FSM state and fault conditions. This confirms that the system provides correct visual feedback for the driver regarding the vehicle's operational status and any fault conditions.
+     * Also verifies that the indicators respond correctly to state transitions and fault detections, ensuring that the driver receives accurate information about the vehicle's status at all times.
+     */
+
+    /* Initially in SAFE state: both indicators should be OFF */
+    TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(fault_indicator_pin));
+    TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(ready_to_race_indicator_pin));
+
+    /* Transition to PRECHARGE: running indicator should turn ON, fault indicator should remain OFF */
+    drive_command(true);
+    BatteryPack_FSM();
+    TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(fault_indicator_pin));
+    TEST_ASSERT_TRUE(HAL_GPIO_ReadPin(ready_to_race_indicator_pin));
+
+    /* Simulate precharge timer elapsing and transition to RUNNING: indicators should remain the same */
+    sim_steps(5.01, 0.001);
+    BatteryPack_FSM();
+    TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(fault_indicator_pin));
+    TEST_ASSERT_TRUE(HAL_GPIO_ReadPin(ready_to_race_indicator_pin));
+
+    /* Simulate a fault condition (e.g., AIR_P welds closed) */
+    CircuitSim_WeldContactorClosed(&AIR_P, true);
+    drive_command(false); // Trigger shutdown → DISCHARGE where fault is detected
+    BatteryPack_FSM();
+
+    /* In FAULT state: fault indicator should turn ON, running indicator should turn OFF */
+    TEST_ASSERT_TRUE(HAL_GPIO_ReadPin(fault_indicator_pin));
+    TEST_ASSERT_FALSE(HAL_GPIO_ReadPin(ready_to_race_indicator_pin));
+}
     
 
 
@@ -665,7 +680,7 @@ void test_BatteryPack_Fault_01_AIR_P_Welded_After_First_Close(void) {
     do {
         sim_steps(0.01, 0.001);
         TEST_ASSERT_EQUAL(EXIT_SUCCESS, BatteryPack_FSM());
-    } while (current_state.state_id < RUNNING_ID);
+    } while (current_state.state_id < READY_TO_RACE_ID);
 
     /* Weld AIR_P closed - it can no longer open */
     CircuitSim_WeldContactorClosed(&AIR_P, true);
@@ -680,7 +695,7 @@ void test_BatteryPack_Fault_01_AIR_P_Welded_After_First_Close(void) {
 
     /* Verify the FSM reached FAULT state and set the correct fault flags */
     TEST_ASSERT_EQUAL_UINT8(FAULT_ID, current_state.state_id);
-    TEST_ASSERT_TRUE(Error_IsSet(&AIR_P.fault_register, FAULT_CONTACTOR_DRIVE_SENSE_MISMATCH));
+    TEST_ASSERT_TRUE(Error_IsSet(&AIR_P.fault_register, FAULT_CONTACTOR_DRIVE_AUX_MISMATCH));
     TEST_ASSERT_TRUE(Error_IsSet(&BatteryPackErrorRegister, FAULT_BPACK_TRANSITION_FAULT));
 }
 
@@ -705,7 +720,7 @@ void test_BatteryPack_Fault_02_Precharge_Resistor_Open(void) {
     /* Precharge timeout drives FSM into FAULT (via FAULT_STATE transition) */
     TEST_ASSERT_EQUAL_UINT8(FAULT_ID, current_state.state_id);
     TEST_ASSERT_TRUE(Error_IsSet(&BatteryPackErrorRegister, FAULT_BPACK_PRECHARGE_FAILURE));
-    TEST_ASSERT_FALSE(Error_IsSet(&PRECHARGE.fault_register, FAULT_CONTACTOR_DRIVE_SENSE_MISMATCH));
+    TEST_ASSERT_FALSE(Error_IsSet(&PRECHARGE.fault_register, FAULT_CONTACTOR_DRIVE_AUX_MISMATCH));
 }
 
 void test_BatteryPack_Fault_03_Discharge_Resistor_Open(void) {
@@ -719,7 +734,7 @@ void test_BatteryPack_Fault_03_Discharge_Resistor_Open(void) {
     drive_command(true);
     sim_steps(7.0, 0.001); /* Simulate precharge and running */
 
-    TEST_ASSERT_EQUAL_UINT8(RUNNING_ID, current_state.state_id);
+    TEST_ASSERT_EQUAL_UINT8(READY_TO_RACE_ID, current_state.state_id);
     TEST_ASSERT_FALSE_MESSAGE(
         hasAnyFaults(), "Expected no faults during precharge and running with open discharge resistor"
     );
@@ -735,7 +750,7 @@ void test_BatteryPack_Fault_03_Discharge_Resistor_Open(void) {
 
     TEST_ASSERT_EQUAL_UINT8(FAULT_ID, current_state.state_id);
     TEST_ASSERT_TRUE(Error_IsSet(&BatteryPackErrorRegister, FAULT_BPACK_DISCHARGE_FAILURE));
-    TEST_ASSERT_FALSE(Error_IsSet(&DISCHARGE.fault_register, FAULT_CONTACTOR_DRIVE_SENSE_MISMATCH));
+    TEST_ASSERT_FALSE(Error_IsSet(&DISCHARGE.fault_register, FAULT_CONTACTOR_DRIVE_AUX_MISMATCH));
 }
 
 void test_BatteryPack_Fault_05_Contactor_Sense_Disconnected(void) {
@@ -752,6 +767,9 @@ int main(void) {
     RUN_TEST(test_BatteryPack_Running_To_Discharge_Transition);
     RUN_TEST(test_BatteryPack_Normal_Cycle);
     RUN_TEST(test_BatteryPack_Shutdown_Uses_Discharge_Contactor);
+    RUN_TEST(test_BatteryPack_LED_Indicators);
+
+     /* Fault circuit tests */
 
     RUN_TEST(test_BatteryPack_Fault_01_AIR_P_Welded_After_First_Close);
     RUN_TEST(test_BatteryPack_Fault_02_Precharge_Resistor_Open);

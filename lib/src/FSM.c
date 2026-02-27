@@ -20,12 +20,12 @@ FSM_State_t PRECHARGE_STATE = {
     .timestamp_ms = 0
 };
 
-FSM_State_t RUNNING_STATE = {
+FSM_State_t READY_TO_RACE_STATE = {
     .air_p_state = CLOSED,
     .air_n_state = CLOSED,
     .precharge_state = OPEN,
     .discharge_state = OPEN,
-    .state_id = RUNNING_ID,
+    .state_id = READY_TO_RACE_ID,
     .timestamp_ms = 0
 };
 
@@ -71,6 +71,38 @@ void _reset_timestamp(FSM_State_t* state) {
     state->timestamp_ms = 0;
 }
 
+static bool FSM_SetLED(FSM_State_t* state) {
+    switch (state->state_id) {
+        case SAFE_ID:
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, false);
+            HAL_GPIO_WritePin(idle_indicator_pin, true);
+            HAL_GPIO_WritePin(fault_indicator_pin, false);
+            return EXIT_SUCCESS;
+        case PRECHARGE_ID:
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, false);
+            HAL_GPIO_WritePin(idle_indicator_pin, false);
+            HAL_GPIO_WritePin(fault_indicator_pin, false);
+            return EXIT_SUCCESS;
+        case READY_TO_RACE_ID:
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, true);
+            HAL_GPIO_WritePin(idle_indicator_pin, false);
+            HAL_GPIO_WritePin(fault_indicator_pin, false);
+            return EXIT_SUCCESS;
+        case DISCHARGE_ID:
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, false);
+            HAL_GPIO_WritePin(idle_indicator_pin, false);
+            HAL_GPIO_WritePin(fault_indicator_pin, false);
+            return EXIT_SUCCESS;
+        case FAULT_ID:
+            HAL_GPIO_WritePin(ready_to_race_indicator_pin, false);
+            HAL_GPIO_WritePin(idle_indicator_pin, false);
+            HAL_GPIO_WritePin(fault_indicator_pin, true);
+            return EXIT_SUCCESS;
+        default:
+            return EXIT_FAILURE;
+    }
+}
+
 /**
  * @brief Force a transition into FAULT state.
  *
@@ -105,11 +137,13 @@ static bool FSM_EnterFault(FSM_State_t* current_state) {
  */
 bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
     if (!current_state || !new_state) {
+        FSM_SetLED(&FAULT_STATE);
         return EXIT_FAILURE;
     }
 
     /* Check if transition is valid (this is a simplified example, real implementation should have more comprehensive checks) */
     if (_compare_contactor_states(current_state, new_state)) {
+        FSM_SetLED(&new_state);
         return EXIT_SUCCESS; // Already in desired state
     }
 
@@ -134,6 +168,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == FAULT_ID) {
                 /* SAFE → FAULT: use shared helper so a stuck contactor cannot
@@ -143,8 +178,8 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 return EXIT_FAILURE; // Invalid transition from SAFE to requested state
             }
         case PRECHARGE_ID:
-            if (new_state->state_id == RUNNING_ID) {
-                // Transition from PRECHARGE to RUNNING
+            if (new_state->state_id == READY_TO_RACE_ID) {
+                // Transition from PRECHARGE to READY_TO_RACE
                 if (Contactor_SetState(&PRECHARGE, OPEN) == EXIT_FAILURE) {
                     return EXIT_FAILURE; // Failed to open precharge contactor
                 }
@@ -161,6 +196,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == DISCHARGE_ID) {
                 // Transition from PRECHARGE to DISCHARGE (abort precharge, isolate pack, enable discharge)
@@ -180,6 +216,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == FAULT_ID) {
                 /* PRECHARGE → FAULT */
@@ -187,9 +224,9 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
             } else {
                 return EXIT_FAILURE; // Invalid transition from PRECHARGE to requested state
             }
-        case RUNNING_ID:
+        case READY_TO_RACE_ID:
             if (new_state->state_id == DISCHARGE_ID) {
-                // Transition from RUNNING to DISCHARGE (isolate pack, enable discharge)
+                // Transition from READY_TO_RACE to DISCHARGE (isolate pack, enable discharge)
                 if (Contactor_SetState(&AIR_P, OPEN) == EXIT_FAILURE) {
                     return EXIT_FAILURE; // Failed to open AIR_P contactor
                 }
@@ -206,6 +243,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == SAFE_ID) {
                 // Transition from RUNNING to SAFE (all contactors open)
@@ -225,6 +263,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == FAULT_ID) {
                 /* RUNNING → FAULT */
@@ -251,6 +290,7 @@ bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state) {
                 // Update current state                
                 *current_state = *new_state;
                 _update_timestamp(current_state);
+                FSM_SetLED(&new_state);
                 return EXIT_SUCCESS;
             } else if (new_state->state_id == FAULT_ID) {
                 /* DISCHARGE → FAULT */

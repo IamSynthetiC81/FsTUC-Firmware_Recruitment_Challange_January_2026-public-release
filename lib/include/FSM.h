@@ -32,7 +32,7 @@
 typedef enum {
     SAFE_ID = 0,
     PRECHARGE_ID = 1,
-    RUNNING_ID = 2,
+    READY_TO_RACE_ID = 2,
     DISCHARGE_ID = 3,
     FAULT_ID = 4
 } FSM_id_t;
@@ -48,7 +48,7 @@ typedef struct {
 
 extern FSM_State_t SAFE_STATE;
 extern FSM_State_t PRECHARGE_STATE;
-extern FSM_State_t RUNNING_STATE;
+extern FSM_State_t READY_TO_RACE_STATE;
 extern FSM_State_t DISCHARGE_STATE;
 extern FSM_State_t FAULT_STATE;
 
@@ -57,11 +57,10 @@ extern Contactor_t AIR_N;
 extern Contactor_t PRECHARGE;
 extern Contactor_t DISCHARGE;
 
+extern GPIO_Pin_t fault_indicator_pin;
+extern GPIO_Pin_t ready_to_race_indicator_pin;
+extern GPIO_Pin_t idle_indicator_pin;
+
 bool FSM_Transition(FSM_State_t* current_state, const FSM_State_t* new_state);
-
-static inline bool FSM_TransitionToState(FSM_State_t* current_state, const FSM_State_t* new_state) {
-    return FSM_Transition(current_state, new_state);
-}
-
 
 #endif // !FSM_H

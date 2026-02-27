@@ -19,10 +19,10 @@ static ContactorState_t Contactor_GetPhysicalState(const Contactor_t* contactor)
 		exit(EXIT_FAILURE);
 	}
 
-	const bool pin_is_high = (HAL_GPIO_ReadPin(contactor->GPIO_Sense_pin));
+	const bool pin_is_high = (HAL_GPIO_ReadPin(contactor->GPIO_AUX_pin));
 
 	ContactorState_t aux_physical_state;
-	if (contactor->sense_logic == ACTIVE_HIGH) {
+	if (contactor->aux_logic == ACTIVE_HIGH) {
 		aux_physical_state = pin_is_high ? CLOSED : OPEN;
 	} else {
 		aux_physical_state = pin_is_high ? OPEN : CLOSED;
@@ -37,20 +37,20 @@ static ContactorState_t Contactor_GetPhysicalState(const Contactor_t* contactor)
  * @param commanded_state The desired physical state of the MAIN contact (OPEN or CLOSED)
  * @return true if sense pin matches the expected physical state of the auxiliary
  */
-static bool sense_pin_valid_state_after_command(const Contactor_t* contactor, const ContactorState_t commanded_state) {
+static bool aux_pin_valid_state_after_command(const Contactor_t* contactor, const ContactorState_t commanded_state) {
 	const ContactorState_t aux_physical_state = Contactor_GetPhysicalState(contactor);
 
 	// 3. Determine what the AUX physical state SHOULD be
 	// When the main contact is in its normal state, the aux is always in its own normal state.
 	// When the main contact is energized (not normal), the aux inverts from its normal state.
 	// This relationship is independent of whether the contacts are "in phase" with each other.
-	const bool main_is_normal = (commanded_state == contactor->normalState);
+	const bool main_is_normal = (commanded_state == contactor->main_normal_state);
 
 	ContactorState_t expected_aux_state;
 	if (main_is_normal) {
-		expected_aux_state = contactor->sense_normal_state;
+		expected_aux_state = contactor->aux_normal_state;
 	} else {
-		expected_aux_state = (contactor->sense_normal_state == OPEN) ? CLOSED : OPEN;
+		expected_aux_state = (contactor->aux_normal_state == OPEN) ? CLOSED : OPEN;
 	}
 
 	// 4. Comparison
@@ -81,7 +81,7 @@ static void Contactor_PullFromEEPROM(Contactor_t* contactor) {
 	contactor->persistance_data.cycle_count = stored_count == 0xFFFFFFFF ? 0 : stored_count;
 
 	if (track_runtime) {
-		const uint16_t stored_address = contactor->persistance_data.EEPROM_cycle_count_address;
+		const uint16_t stored_address = contactor->persistance_data.EEPROM_accumulated_runtime_address;
 
 		if (stored_address == (uint16_t)-1) {
 			fprintf(stderr, "Contactor_Init: EEPROM accumulated runtime address not set\n");
@@ -116,8 +116,8 @@ bool Contactor_Init(Contactor_t* contactor) {
 	// 1. VALIDATION: Check for illegal electrical configs
     // Active High needs a Pull-Down to be safe; Active Low needs a Pull-Up.
     if (
-    	(contactor->sense_logic == ACTIVE_HIGH && contactor->GPIO_Sense_pin.pull == GPIO_PULL_UP) ||
-		(contactor->sense_logic == ACTIVE_LOW && contactor->GPIO_Sense_pin.pull == GPIO_PULL_DOWN) ||
+    	(contactor->aux_logic == ACTIVE_HIGH && contactor->GPIO_AUX_pin.pull == GPIO_PULL_UP) ||
+		(contactor->aux_logic == ACTIVE_LOW && contactor->GPIO_AUX_pin.pull == GPIO_PULL_DOWN) ||
 		(contactor->drive_logic == ACTIVE_HIGH && contactor->GPIO_Drive_pin.pull == GPIO_PULL_UP) ||
 		(contactor->drive_logic == ACTIVE_LOW && contactor->GPIO_Drive_pin.pull == GPIO_PULL_DOWN)
 	) {
@@ -127,7 +127,7 @@ bool Contactor_Init(Contactor_t* contactor) {
 
 	// Initialize GPIO pins
 	HAL_GPIO_Init(contactor->GPIO_Drive_pin);
-	HAL_GPIO_Init(contactor->GPIO_Sense_pin);
+	HAL_GPIO_Init(contactor->GPIO_AUX_pin);
 
 	// Initialize drive pin to de-energized state (OPEN)
 	const bool initial_drive_level = (contactor->drive_logic == ACTIVE_HIGH) ? false : true;
@@ -199,11 +199,11 @@ ContactorState_t Contactor_GetState(Contactor_t* contactor) {
 		exit(EXIT_FAILURE);
     }
 
-    if (!sense_pin_valid_state_after_command(contactor, contactor->current_state)) {
-		Error_Set(&contactor->fault_register, FAULT_CONTACTOR_DRIVE_SENSE_MISMATCH);
+    if (!aux_pin_valid_state_after_command(contactor, contactor->current_state)) {
+		Error_Set(&contactor->fault_register, FAULT_CONTACTOR_DRIVE_AUX_MISMATCH);
     	const ContactorState_t aux_physical_state = Contactor_GetPhysicalState(contactor);
 
-    	const bool inPhase = (contactor->normalState == contactor->sense_normal_state);
+    	const bool inPhase = (contactor->main_normal_state == contactor->aux_normal_state);
     	return (inPhase) ? aux_physical_state : (aux_physical_state == OPEN ? CLOSED : OPEN);
 	}
 

@@ -15,10 +15,10 @@ void ResetContactorsWithSim(void) {
     air_p_uut = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_C, .pinNumber = GPIO_PIN_0, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 0,
@@ -36,10 +36,10 @@ void ResetContactorsWithSim(void) {
     air_n_uut = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_C, .pinNumber = GPIO_PIN_1, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 10,
@@ -56,10 +56,10 @@ void ResetContactorsWithSim(void) {
     precharge_contactor_uut = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_C, .pinNumber = GPIO_PIN_2, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 20,
@@ -76,10 +76,10 @@ void ResetContactorsWithSim(void) {
     discharge_contactor_uut = (Contactor_t){
         .GPIO_Drive_pin = {.port = GPIO_PORT_A, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
         .drive_logic = ACTIVE_HIGH,
-        .normalState = OPEN,
-        .GPIO_Sense_pin = {.port = GPIO_PORT_B, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
-        .sense_logic = ACTIVE_HIGH,
-        .sense_normal_state = CLOSED,
+        .main_normal_state = OPEN,
+        .GPIO_AUX_pin = {.port = GPIO_PORT_C, .pinNumber = GPIO_PIN_3, .pull = GPIO_PULL_DOWN},
+        .aux_logic = ACTIVE_HIGH,
+        .aux_normal_state = CLOSED,
         .persistance_data = {
             .cycle_count = 0,
             .EEPROM_cycle_count_address = EEPROM_ADDRESS_CONTACTOR_CYCLE_COUNT + 30,
@@ -196,13 +196,13 @@ void test_Contactor_Valid_Pull_Config(void) {
         
     /* Correct config */
     air_p_uut.drive_logic = ACTIVE_HIGH;
-    air_p_uut.sense_logic = ACTIVE_HIGH;
+    air_p_uut.aux_logic = ACTIVE_HIGH;
     air_p_uut.GPIO_Drive_pin.pull = GPIO_PULL_DOWN; 
-    air_p_uut.GPIO_Sense_pin.pull = GPIO_PULL_DOWN; 
+    air_p_uut.GPIO_AUX_pin.pull = GPIO_PULL_DOWN; 
     
     const bool retval = Contactor_Init(&air_p_uut);
     const GPIO_Pull_t pull1 = Mock_HAL_GetPullConfig(air_p_uut.GPIO_Drive_pin);
-    const GPIO_Pull_t pull2 = Mock_HAL_GetPullConfig(air_p_uut.GPIO_Sense_pin);
+    const GPIO_Pull_t pull2 = Mock_HAL_GetPullConfig(air_p_uut.GPIO_AUX_pin);
 
     TEST_ASSERT_EQUAL(GPIO_PULL_DOWN, pull1);
     TEST_ASSERT_EQUAL(GPIO_PULL_DOWN, pull2);
@@ -221,9 +221,9 @@ void test_Contactor_Invalid_Pull_Config(void) {
 
     /* Incorrect config */
     air_p_uut.drive_logic = ACTIVE_HIGH;
-    air_p_uut.sense_logic = ACTIVE_HIGH;
+    air_p_uut.aux_logic = ACTIVE_HIGH;
     air_p_uut.GPIO_Drive_pin.pull = GPIO_PULL_UP; // This is an electrical mismatch
-    air_p_uut.GPIO_Sense_pin.pull = GPIO_PULL_UP; // This is an electrical mismatch
+    air_p_uut.GPIO_AUX_pin.pull = GPIO_PULL_UP; // This is an electrical mismatch
 
     const bool retval = Contactor_Init(&air_p_uut);
 
@@ -252,8 +252,8 @@ void test_Contactor_DriveToSense_MixedLogic(void) {
     */
 
     air_n_uut.drive_logic = ACTIVE_HIGH;
-    air_n_uut.sense_logic = ACTIVE_LOW;
-    air_n_uut.GPIO_Sense_pin.pull = GPIO_PULL_UP;
+    air_n_uut.aux_logic = ACTIVE_LOW;
+    air_n_uut.GPIO_AUX_pin.pull = GPIO_PULL_UP;
     air_n_uut.GPIO_Drive_pin.pull = GPIO_PULL_DOWN;
 
     {
@@ -299,21 +299,21 @@ void test_Contactor_Closes_Physically(void) {
 
 void test_Contactor_Fault_WeldedContact(void) {
     /*
-        Verify that if the contactor is commanded to OPEN but the sense pin indicates it is still 
+        Verify that if the contactor is commanded to OPEN but the aux pin indicates it is still 
         CLOSED (simulating a welded contact), Contactor_SetState should return EXIT_FAILURE, the fault 
-        register should indicate a hard fault, and the state should reflect the sense pin reading (CLOSED).
+        register should indicate a hard fault, and the state should reflect the aux pin reading (CLOSED).
 
         This test uses the pre-registered air_p_uut contactor, commands it to open, 
-        simulates a welded contact by forcing the sense pin to read CLOSED, and checks that 
+        simulates a welded contact by forcing the aux pin to read CLOSED, and checks that 
         Contactor_SetState correctly identifies the fault condition and updates the state 
         and fault register accordingly.
     */
     
-    air_p_uut.GPIO_Sense_pin.pull   = GPIO_PULL_DOWN;
-    air_p_uut.sense_logic           = ACTIVE_HIGH;
+    air_p_uut.GPIO_AUX_pin.pull   = GPIO_PULL_DOWN;
+    air_p_uut.aux_logic           = ACTIVE_HIGH;
 
-    air_p_uut.normalState           = OPEN;
-    air_p_uut.sense_normal_state    = CLOSED;
+    air_p_uut.main_normal_state   = OPEN;
+    air_p_uut.aux_normal_state    = CLOSED;
     
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_p_uut));
     TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
@@ -324,10 +324,10 @@ void test_Contactor_Fault_WeldedContact(void) {
         TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
 
         const ContactorState_t result = Contactor_GetState(&air_p_uut);
-        const bool sense_pin_level = HAL_GPIO_ReadPin(air_p_uut.GPIO_Sense_pin);
-        const bool expected_sense_level = false;
+        const bool aux_pin_level = HAL_GPIO_ReadPin(air_p_uut.GPIO_AUX_pin);
+        const bool expected_aux_level = false;
 
-        TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+        TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
         TEST_ASSERT_EQUAL(CLOSED, result);
         TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
 
@@ -338,12 +338,12 @@ void test_Contactor_Fault_WeldedContact(void) {
     const bool retval = Contactor_SetState(&air_p_uut, OPEN);
 
     const ContactorState_t result = Contactor_GetState(&air_p_uut);
-    const bool sense_pin_level = HAL_GPIO_ReadPin(air_p_uut.GPIO_Sense_pin);
-    const bool expected_sense_level = false;
+    const bool aux_pin_level = HAL_GPIO_ReadPin(air_p_uut.GPIO_AUX_pin);
+    const bool expected_aux_level = false;
 
 
     TEST_ASSERT_EQUAL(EXIT_FAILURE, retval);
-    TEST_ASSERT_EQUAL_MESSAGE(expected_sense_level, sense_pin_level, "Sense pin level should reflect the welded contact state (stuck low)");
+    TEST_ASSERT_EQUAL_MESSAGE(expected_aux_level, aux_pin_level, "Aux pin level should reflect the welded contact state (stuck low)");
     TEST_ASSERT_TRUE(hasHardFault(&air_p_uut));
     TEST_ASSERT_EQUAL(CLOSED, result);
 }
@@ -356,7 +356,7 @@ void test_Contactor_Should_Wait_For_Travel_Time(void) {
         Additionally, it checks that no faults are set during this normal operation.
     */
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_n_uut));
-    TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
+    TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
     
     const double start_time = HAL_GetRuntimeMs();
     const bool retval = Contactor_SetState(&air_n_uut, CLOSED);
@@ -370,20 +370,20 @@ void test_Contactor_Should_Wait_For_Travel_Time(void) {
     bool result = Contactor_GetState(&air_n_uut);
     TEST_ASSERT_EQUAL(CLOSED, result);
 
-    TEST_ASSERT_FALSE(hasHardFault(&air_p_uut));
+    TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 }
 
 void test_NO_main_NC_aux(void) {
     /*
-        Verify that the sense pin correctly reflects the state of the auxiliary contact based on the normal states and logic configurations.
-        For example, if the main contact is normally open and the auxiliary contact is normally closed, when the main is commanded to close, the sense pin should reflect the state of the auxiliary contact accordingly.
+        Verify that the aux pin correctly reflects the state of the auxiliary contact based on the normal states and logic configurations.
+        For example, if the main contact is normally open and the auxiliary contact is normally closed, when the main is commanded to close, the aux pin should reflect the state of the auxiliary contact accordingly.
 
-        This test uses the pre-registered air_n_uut contactor, configures it with a normally open main and a normally closed auxiliary contact, and checks that the sense pin level changes as expected when commanding OPEN and CLOSED states.
+        This test uses the pre-registered air_n_uut contactor, configures it with a normally open main and a normally closed auxiliary contact, and checks that the aux pin level changes as expected when commanding OPEN and CLOSED states.
     */
         
-    air_n_sim.contactor->sense_normal_state = CLOSED;
-    air_n_sim.contactor->normalState = OPEN;
-    air_n_sim.contactor->sense_logic = ACTIVE_HIGH;
+    air_n_sim.contactor->aux_normal_state = CLOSED;
+    air_n_sim.contactor->main_normal_state = OPEN;
+    air_n_sim.contactor->aux_logic = ACTIVE_HIGH;
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_n_uut));
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
@@ -395,9 +395,9 @@ void test_NO_main_NC_aux(void) {
         TEST_ASSERT_EQUAL(CLOSED, Contactor_GetState(&air_n_uut));
 
         // main is closed -> sense is open -> sense pin should read LOW due to normally closed aux contact
-        const bool expected_sense_level = false;
-        const bool sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-        TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+        const bool expected_aux_level = false;
+        const bool aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+        TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
     }
 
     /* Test opening the contactors */
@@ -406,24 +406,24 @@ void test_NO_main_NC_aux(void) {
 
         TEST_ASSERT_EQUAL(OPEN, Contactor_GetState(&air_n_uut));
 
-        const bool expected_sense_level = true;
-        const bool sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-        TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+        const bool expected_aux_level = true;
+        const bool aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+        TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
     }
 }
 
 void test_NC_main_NO_aux(void) {
     /*
-        Verify that the sense pin correctly reflects the state of the auxiliary contact based on the normal states and logic configurations.
-        For example, if the main contact is normally closed and the auxiliary contact is normally open, when the main is commanded to close, the sense pin should reflect the state of the auxiliary contact accordingly.
+        Verify that the aux pin correctly reflects the state of the auxiliary contact based on the normal states and logic configurations.
+        For example, if the main contact is normally closed and the auxiliary contact is normally open, when the main is commanded to close, the aux pin should reflect the state of the auxiliary contact accordingly.
 
         This test uses the pre-registered air_n_uut contactor, configures it with a normally closed main and a normally open auxiliary contact, and checks that the sense pin level changes as expected when commanding OPEN and CLOSED states.
     */
     
     // Normally closed main with normally open aux works
-    air_n_sim.contactor->sense_normal_state = OPEN;
-    air_n_sim.contactor->normalState        = CLOSED;
-    air_n_sim.contactor->sense_logic        = ACTIVE_HIGH;
+    air_n_sim.contactor->aux_normal_state = OPEN;
+    air_n_sim.contactor->main_normal_state        = CLOSED;
+    air_n_sim.contactor->aux_logic        = ACTIVE_HIGH;
     air_n_sim.contactor->drive_logic        = ACTIVE_HIGH;
     
     
@@ -437,18 +437,18 @@ void test_NC_main_NO_aux(void) {
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), CLOSED);
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
-    bool expected_sense_level = (air_n_uut.sense_normal_state == OPEN) ? false : true;
-    bool sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+    bool expected_aux_level = (air_n_uut.aux_normal_state == OPEN) ? false : true;
+    bool aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_SetState(&air_n_uut, OPEN));
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), OPEN);
 
-    expected_sense_level = (air_n_uut.sense_normal_state == OPEN) ? true : false;
-    sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+    expected_aux_level = (air_n_uut.aux_normal_state == OPEN) ? true : false;
+    aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
 }
 
 void test_NC_main_NC_aux(void) {
@@ -460,9 +460,9 @@ void test_NC_main_NC_aux(void) {
     */
 
     // Normally closed main with normally closed aux works
-    air_n_sim.contactor->sense_normal_state     = CLOSED;
-    air_n_sim.contactor->normalState            = CLOSED;
-    air_n_sim.contactor->sense_logic            = ACTIVE_HIGH;
+    air_n_sim.contactor->aux_normal_state     = CLOSED;
+    air_n_sim.contactor->main_normal_state            = CLOSED;
+    air_n_sim.contactor->aux_logic            = ACTIVE_HIGH;
     air_n_sim.contactor->drive_logic            = ACTIVE_HIGH;
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_n_uut));
@@ -472,18 +472,18 @@ void test_NC_main_NC_aux(void) {
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), CLOSED);
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
-    bool expected_sense_level = (air_n_uut.sense_normal_state == CLOSED) ? true : false;
-    bool sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL_MESSAGE(expected_sense_level, sense_pin_level, "Sense pin level should reflect the normally closed auxiliary contact state");
+    bool expected_aux_level = (air_n_uut.aux_normal_state == CLOSED) ? true : false;
+    bool aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL_MESSAGE(expected_aux_level, aux_pin_level, "Aux pin level should reflect the normally closed auxiliary contact state");
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS,Contactor_SetState(&air_n_uut, OPEN));
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), OPEN);
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
     // When main is OPEN (energized, not normal state), aux should invert from its normal state
-    expected_sense_level = (air_n_uut.sense_normal_state == CLOSED) ? false : true;
-    sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+    expected_aux_level = (air_n_uut.aux_normal_state == CLOSED) ? false : true;
+    aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
 }
 
 void test_NO_main_NO_aux(void) {
@@ -495,12 +495,12 @@ void test_NO_main_NO_aux(void) {
     */
 
     // Normally open main with normally open aux works
-    air_n_sim.contactor->sense_normal_state = OPEN;
-    air_n_sim.contactor->normalState = OPEN;
-    air_n_sim.contactor->sense_logic = ACTIVE_LOW;
+    air_n_sim.contactor->aux_normal_state = OPEN;
+    air_n_sim.contactor->main_normal_state = OPEN;
+    air_n_sim.contactor->aux_logic = ACTIVE_LOW;
     air_n_sim.contactor->drive_logic = ACTIVE_LOW;
 
-    air_n_sim.contactor->GPIO_Sense_pin.pull = GPIO_PULL_UP;
+    air_n_sim.contactor->GPIO_AUX_pin.pull = GPIO_PULL_UP;
     air_n_sim.contactor->GPIO_Drive_pin.pull = GPIO_PULL_UP;
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS, Contactor_Init(&air_n_uut));
@@ -510,17 +510,17 @@ void test_NO_main_NO_aux(void) {
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), CLOSED);
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
-    bool expected_sense_level = (air_n_uut.sense_normal_state == OPEN) ? false : true;
-    bool sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+    bool expected_aux_level = (air_n_uut.aux_normal_state == OPEN) ? false : true;
+    bool aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
 
     TEST_ASSERT_EQUAL(EXIT_SUCCESS , Contactor_SetState(&air_n_uut, OPEN));
     TEST_ASSERT_EQUAL(Contactor_GetState(&air_n_uut), OPEN);
     TEST_ASSERT_FALSE(hasHardFault(&air_n_uut));
 
-    expected_sense_level = (air_n_uut.sense_normal_state == OPEN) ? true : false;
-    sense_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_Sense_pin);
-    TEST_ASSERT_EQUAL(expected_sense_level, sense_pin_level);
+    expected_aux_level = (air_n_uut.aux_normal_state == OPEN) ? true : false;
+    aux_pin_level = HAL_GPIO_ReadPin(air_n_uut.GPIO_AUX_pin);
+    TEST_ASSERT_EQUAL(expected_aux_level, aux_pin_level);
 }
 
 

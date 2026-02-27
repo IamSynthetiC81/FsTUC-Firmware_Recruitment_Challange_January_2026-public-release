@@ -1,3 +1,25 @@
+/**
+ * @file contactor.h
+ * @author Mario M. (
+ * 
+ * Contactors are electromechanical switches used to control the flow of electrical power in a circuit. 
+ * In the context of this battery pack management system, contactors are responsible for connecting and 
+ * disconnecting the battery pack from the load (e.g., the vehicle's drivetrain) and from the charging source. 
+ * Proper control and monitoring of these contactors are critical for ensuring the safety, reliability, 
+ * and performance of the battery pack.
+ * 
+ * Contactors have two main components: 
+ * a drive pin that energizes the contactor coil to change its state (OPEN or CLOSED),
+ * and an auxiliary pin that senses the actual state of the contactor.
+ * 
+ * Concactors have a limited lifespan, often specified in terms of the 
+ * number of cycles (OPEN-CLOSE operations) they can perform before failure.
+ * 
+ * @requirement The contactor module must provide functions to initialize the contactor, 
+ * set its state (OPEN or CLOSED), and read its current state based on the auxiliary pin.
+ * 
+ */
+
 #ifndef CONTACTOR_H
 #define CONTACTOR_H
 
@@ -12,7 +34,7 @@
  * Contactor Error Bit and Structure Definitions
  * ====================================================================== */
 
-#define FAULT_CONTACTOR_DRIVE_SENSE_MISMATCH		0
+#define FAULT_CONTACTOR_DRIVE_AUX_MISMATCH		  0
 #define FAULT_CONTACTOR_STUCK_CLOSED				    1
 #define FAULT_CONTACTOR_STUCK_OPEN				      2
 #define FAULT_CONTACTOR_CYCLE_COUNT_OVERFLOW		3
@@ -54,21 +76,19 @@ typedef enum {
 } ContactorActiveLogic_t;
 
 typedef struct {
-  GPIO_Pin_t GPIO_Drive_pin;
-  ContactorActiveLogic_t drive_logic;
-  ContactorState_t normalState;
+  GPIO_Pin_t GPIO_Drive_pin;                    // GPIO pin used to drive the contactor coil
+  ContactorActiveLogic_t drive_logic;           // Logic type for drive pin (ACTIVE_HIGH or ACTIVE_LOW)
+  ContactorState_t main_normal_state;           // The normal (de-energized) state of the main contact (OPEN or CLOSED)
 
-  GPIO_Pin_t GPIO_Sense_pin;
-  ContactorActiveLogic_t sense_logic;
-  ContactorState_t sense_normal_state ;
+  GPIO_Pin_t GPIO_AUX_pin;                      // GPIO pin used to sense the contactor state 
+  ContactorActiveLogic_t aux_logic;             // Logic type for aux pin (ACTIVE_HIGH or ACTIVE_LOW)
+  ContactorState_t aux_normal_state ;           // The normal state of the aux contact (OPEN or CLOSED). This is used to determine expected aux state based on main state.
 
-  ContactorState_t current_state;
+  ContactorState_t current_state;               // The current state of the contactor as last commanded (not necessarily the actual physical state)
 
-  Contactor_PersistanceData_t persistance_data;
-  ErrorRegister_t fault_register;
-
-
-} Contactor_t;
+  Contactor_PersistanceData_t persistance_data; // Data related to cycle counting and runtime tracking that may be persisted to EEPROM
+  ErrorRegister_t fault_register;               // Error register specific to this contactor for tracking faults like drive/sense mismatch, stuck states, EEPROM errors, etc.
+} Contactor_t;  
 
 /* =======================================================================
  * Contactor Function Prototypes
