@@ -55,6 +55,10 @@ Welcome! This document outlines what you must do to complete the FsTUC Firmware 
 
 ## 3. FSM (Finite State Machine)
 
+![FSM States](doc/FSM.svg)
+
+Where D = Drive Signal
+
 ### 3.1. Required States
 - **SAFE:**
 	- All contactors open -> all current paths are broken. No current flow. System is in a safe, idle state.
