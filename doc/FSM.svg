@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="800"
+   height="600"
+   version="1.1"
+   id="svg21"
+   sodipodi:docname="FSM.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs21" />
+  <sodipodi:namedview
+     id="namedview21"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.945"
+     inkscape:cx="399.74293"
+     inkscape:cy="300"
+     inkscape:window-width="2560"
+     inkscape:window-height="1369"
+     inkscape:window-x="-8"
+     inkscape:window-y="1072"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg21" />
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="394.5"
+     cy="94.5"
+     rx="30"
+     ry="30"
+     id="ellipse1" />
+  <text
+     x="376.5"
+     y="100.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text1">Safe</text>
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="394.5"
+     cy="94.5"
+     rx="24"
+     ry="24"
+     id="ellipse2" />
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="637.5"
+     cy="288.5"
+     rx="30"
+     ry="30"
+     id="ellipse3" />
+  <text
+     x="597.5"
+     y="294.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text3">Precharge</text>
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="394.5"
+     cy="507.5"
+     rx="30"
+     ry="30"
+     id="ellipse4" />
+  <text
+     x="375.5"
+     y="513.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text4">RTR</text>
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="144.5"
+     cy="288.5"
+     rx="30"
+     ry="30"
+     id="ellipse5" />
+  <text
+     x="104.5"
+     y="294.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text5">Discharge</text>
+  <ellipse
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     cx="394.5"
+     cy="288.5"
+     rx="30"
+     ry="30"
+     id="ellipse6" />
+  <text
+     x="373.5"
+     y="294.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text6">Fault</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 423.858,88.48 A 190.494,190.494 0 0 1 636.868,258.538"
+     id="path6" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="636.868,258.538 641.046,250.079 631.096,251.076"
+     id="polygon6" />
+  <text
+     x="571.5"
+     y="119.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text7">D=1</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 642.406,318.063 A 185.18,185.18 0 0 1 423.395,515.443"
+     id="path7" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="423.395,515.443 430.325,521.845 432.186,512.02"
+     id="polygon7" />
+  <text
+     x="586.5"
+     y="491.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text8">D=1</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 365.406,514.69 A 192.75,192.75 0 0 1 141.202,318.288"
+     id="path8" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="141.202,318.288 135.945,326.121 145.94,326.446"
+     id="polygon8" />
+  <text
+     x="166.5"
+     y="490.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text9">D=0</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 145.719,258.554 A 194.918,194.918 0 0 1 365.189,88.246"
+     id="path9" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="365.189,88.246 357.925,82.227 356.596,92.138"
+     id="polygon9" />
+  <text
+     x="179.5"
+     y="118.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text10">D=0</text>
+  <polygon
+     stroke="black"
+     stroke-width="1"
+     points="394.5,124.5 394.5,258.5"
+     id="polygon10" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="394.5,258.5 399.5,250.5 389.5,250.5"
+     id="polygon11" />
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 381.275,67.703 A 22.5,22.5 0 1 1 407.725,67.703"
+     id="path11" />
+  <text
+     x="376.5"
+     y="17.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text11">D=0</text>
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="407.725,67.703 416.473,64.17 408.382,58.292"
+     id="polygon12" />
+  <polygon
+     stroke="black"
+     stroke-width="1"
+     points="394.5,477.5 394.5,318.5"
+     id="polygon13" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="394.5,318.5 389.5,326.5 399.5,326.5"
+     id="polygon14" />
+  <polygon
+     stroke="black"
+     stroke-width="1"
+     points="607.5,288.5 424.5,288.5"
+     id="polygon15" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="424.5,288.5 432.5,293.5 432.5,283.5"
+     id="polygon16" />
+  <polygon
+     stroke="black"
+     stroke-width="1"
+     points="174.5,288.5 364.5,288.5"
+     id="polygon17" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="364.5,288.5 356.5,283.5 356.5,293.5"
+     id="polygon18" />
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 162.09,264.214 A 293.889,293.889 0 0 1 619.91,264.214"
+     id="path18" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="619.91,264.214 618.787,254.847 610.998,261.119"
+     id="polygon19" />
+  <text
+     x="179.15552"
+     y="261.6954"
+     font-family="'Times New Roman'"
+     font-size="20px"
+     id="text19">D=1</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 624.367,315.455 A 267.315,267.315 0 0 1 157.633,315.455"
+     id="path19" />
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="157.633,315.455 157.169,324.878 165.899,320.001"
+     id="polygon20" />
+  <text
+     x="571.95758"
+     y="337.76736"
+     font-family="'Times New Roman'"
+     font-size="20px"
+     id="text20">D=0</text>
+  <path
+     stroke="black"
+     stroke-width="1"
+     fill="none"
+     d="M 407.725,534.297 A 22.5,22.5 0 1 1 381.275,534.297"
+     id="path20" />
+  <text
+     x="376.5"
+     y="596.5"
+     font-family="Times New Roman"
+     font-size="20"
+     id="text21">D=1</text>
+  <polygon
+     fill="black"
+     stroke-width="1"
+     points="381.275,534.297 372.527,537.83 380.618,543.708"
+     id="polygon21" />
+</svg>
