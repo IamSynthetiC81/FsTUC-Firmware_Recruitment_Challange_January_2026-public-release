@@ -122,7 +122,7 @@ enable_testing()
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-option(USE_PREBUILT_EMBEDDED "Link tests against prebuilt EmbeddedHardware static library" OFF)
+option(USE_PREBUILT_EMBEDDED "Link tests against prebuilt EmbeddedHardware static library" ON)
 option(USE_PREBUILT_HARDWARE_MOCH "Link tests against prebuilt HardwareMoch static library" OFF)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
