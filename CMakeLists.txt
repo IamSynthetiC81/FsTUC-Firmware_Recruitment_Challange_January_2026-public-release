@@ -209,6 +209,28 @@ endif()
 # ============================================================================
 # Embedded Hardware library (production code, no UNIT_TESTING)
 # ============================================================================
+set(EMBEDDED_SOURCE_FILES
+        lib/src/ADC.c
+        lib/src/EEPROM.c
+        lib/src/ErrorRegister.c
+        lib/src/HAL_io.c
+        lib/src/CircuitSim.c
+        lib/src/Clock.c
+)
+
+set(EMBEDDED_SOURCES_AVAILABLE ON)
+foreach(embedded_src IN LISTS EMBEDDED_SOURCE_FILES)
+        if(NOT EXISTS "${CMAKE_SOURCE_DIR}/${embedded_src}")
+                set(EMBEDDED_SOURCES_AVAILABLE OFF)
+                break()
+        endif()
+endforeach()
+
+if(NOT USE_PREBUILT_EMBEDDED AND NOT EMBEDDED_SOURCES_AVAILABLE)
+        message(WARNING "EmbeddedHardware source files are missing; forcing USE_PREBUILT_EMBEDDED=ON for this configure.")
+        set(USE_PREBUILT_EMBEDDED ON CACHE BOOL "Link tests against prebuilt EmbeddedHardware static library" FORCE)
+endif()
+
 if(USE_PREBUILT_EMBEDDED)
         set(EMBEDDED_PREBUILT_PATH "${PREBUILT_EMBEDDED_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}EmbeddedHardware${CMAKE_STATIC_LIBRARY_SUFFIX}")
         if(NOT EXISTS "${EMBEDDED_PREBUILT_PATH}")
@@ -222,12 +244,7 @@ if(USE_PREBUILT_EMBEDDED)
     )
 else()
     add_library(EmbeddedHardware STATIC
-            lib/src/ADC.c
-            lib/src/EEPROM.c
-            lib/src/ErrorRegister.c
-            lib/src/HAL_io.c
-            lib/src/CircuitSim.c
-            lib/src/Clock.c
+            ${EMBEDDED_SOURCE_FILES}
     )
     target_include_directories(EmbeddedHardware PUBLIC
             ${LIB_INCLUDE_DIR}
