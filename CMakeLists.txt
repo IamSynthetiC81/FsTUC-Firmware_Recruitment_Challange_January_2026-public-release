@@ -123,21 +123,58 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 option(USE_PREBUILT_EMBEDDED "Link tests against prebuilt EmbeddedHardware static library" OFF)
-set(PREBUILT_EMBEDDED_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${CMAKE_SYSTEM_NAME}" CACHE PATH "Directory containing prebuilt EmbeddedHardware static library")
 option(USE_PREBUILT_HARDWARE_MOCH "Link tests against prebuilt HardwareMoch static library" ON)
-set(PREBUILT_HARDWARE_MOCH_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${CMAKE_SYSTEM_NAME}" CACHE PATH "Directory containing prebuilt HardwareMoch static library")
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(PREBUILT_PLATFORM_DIR "Linux")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        set(PREBUILT_PLATFORM_DIR "Windows")
+else()
+        message(FATAL_ERROR "Unsupported platform '${CMAKE_SYSTEM_NAME}'. Supported prebuilt directories are prebuilt/Linux and prebuilt/Windows.")
+endif()
+
+set(PREBUILT_EMBEDDED_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${PREBUILT_PLATFORM_DIR}")
+set(PREBUILT_HARDWARE_MOCH_DIR "${CMAKE_SOURCE_DIR}/prebuilt/${PREBUILT_PLATFORM_DIR}")
 
 # ============================================================================
 # Fetch Unity test framework
 # ============================================================================
 include(FetchContent)
 
-FetchContent_Declare(
-        unity
-        GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
-        GIT_TAG        v2.5.2
+set(UNITY_SOURCE_HINT "" CACHE PATH "Optional path to local Unity repository root")
+
+set(_UNITY_CANDIDATES)
+if(UNITY_SOURCE_HINT)
+        list(APPEND _UNITY_CANDIDATES "${UNITY_SOURCE_HINT}")
+endif()
+list(APPEND _UNITY_CANDIDATES
+        "${CMAKE_SOURCE_DIR}/external/Unity"
+        "${CMAKE_SOURCE_DIR}/external/CMock/vendor/unity"
 )
-FetchContent_MakeAvailable(unity)
+
+set(unity_SOURCE_DIR "")
+foreach(_candidate IN LISTS _UNITY_CANDIDATES)
+        if(EXISTS "${_candidate}/src/unity.c")
+                set(unity_SOURCE_DIR "${_candidate}")
+                break()
+        endif()
+endforeach()
+
+if(unity_SOURCE_DIR)
+        message(STATUS "Using local Unity source: ${unity_SOURCE_DIR}")
+elseif(WIN32 AND CMAKE_SOURCE_DIR MATCHES "^[/\\][/\\]")
+        message(FATAL_ERROR
+                "Unity cannot be fetched from a Windows UNC workspace path (${CMAKE_SOURCE_DIR}) with this generator. "
+                "Either clone the project to a local drive path (for example C:/...), or provide -DUNITY_SOURCE_HINT=<local Unity path>."
+        )
+else()
+        FetchContent_Declare(
+                unity
+                GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+                GIT_TAG        v2.5.2
+        )
+        FetchContent_MakeAvailable(unity)
+endif()
 
 # ============================================================================
 # Unity static library (shared by all test targets)
